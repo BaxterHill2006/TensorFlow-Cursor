@@ -20,6 +20,11 @@ BATCH_SIZE = 32
 EPOCHS = 10
 LEARNING_RATE = 1e-4
 
+# Performance toggles (especially helpful on GPU)
+ENABLE_GPU_MEMORY_GROWTH = True
+ENABLE_MIXED_PRECISION = True
+ENABLE_XLA = False
+
 # Artifacts
 CHECKPOINT_DIR = PROJECT_ROOT / "checkpoints"
 MODEL_EXPORT_PATH = PROJECT_ROOT / "saved_model"

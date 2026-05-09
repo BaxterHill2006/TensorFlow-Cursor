@@ -13,6 +13,29 @@ from image_classifier.dataset import make_datasets
 from image_classifier.model import build_simple_cnn, build_transfer_learning_model
 
 
+def configure_training_runtime() -> None:
+    """Enable GPU-friendly TensorFlow options from config flags."""
+    gpus = tf.config.list_physical_devices("GPU")
+    if not gpus:
+        print("No GPU detected; training will run on CPU.")
+        return
+
+    print(f"Detected {len(gpus)} GPU(s): {[gpu.name for gpu in gpus]}")
+
+    if config.ENABLE_GPU_MEMORY_GROWTH:
+        for gpu in gpus:
+            tf.config.experimental.set_memory_growth(gpu, True)
+        print("Enabled GPU memory growth.")
+
+    if config.ENABLE_MIXED_PRECISION:
+        tf.keras.mixed_precision.set_global_policy("mixed_float16")
+        print("Enabled mixed precision (mixed_float16).")
+
+    if config.ENABLE_XLA:
+        tf.config.optimizer.set_jit(True)
+        print("Enabled XLA JIT compiler.")
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -23,6 +46,7 @@ def main():
     )
     parser.add_argument("--epochs", type=int, default=None)
     args = parser.parse_args()
+    configure_training_runtime()
 
     train_ds, val_ds, num_classes, class_names = make_datasets()
 
