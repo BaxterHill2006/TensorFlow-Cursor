@@ -73,11 +73,12 @@ def main():
 
     model.fit(train_ds, validation_data=val_ds, epochs=epochs, callbacks=[ckpt])
 
-    config.MODEL_EXPORT_PATH.mkdir(parents=True, exist_ok=True)
-    model.save(config.MODEL_EXPORT_PATH)
+    config.SAVED_MODEL_DIR.mkdir(parents=True, exist_ok=True)
+    model.save(str(config.MODEL_EXPORT_PATH))
     names_json = json.dumps(class_names)
-    (Path(config.MODEL_EXPORT_PATH) / "class_names.json").write_text(names_json, encoding="utf-8")
+    (config.SAVED_MODEL_DIR / "class_names.json").write_text(names_json, encoding="utf-8")
     (config.CHECKPOINT_DIR / "class_names.json").write_text(names_json, encoding="utf-8")
+    print("Saved:", config.MODEL_EXPORT_PATH)
     print("Classes (index order):", class_names)
 
 
