@@ -4,3 +4,5 @@ python -m venv .venv
 pip install -r requirements.txt
 
 python -m image_classifier.train
+
+python -c "import tensorflow as tf; m=tf.keras.models.load_model(r'.\checkpoints\best_model.keras'); (_, _), (x_test,y_test)=tf.keras.datasets.cifar10.load_data(); x=tf.image.resize(tf.cast(x_test,tf.float32)/255.0,[224,224]); y=tf.reshape(tf.cast(y_test,tf.int32),[-1]); m.compile(loss=tf.keras.losses.SparseCategoricalCrossentropy(),metrics=['accuracy']); print(m.evaluate(x,y,verbose=1))"
