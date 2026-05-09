@@ -1,10 +1,25 @@
-"""Load and preprocess image datasets from directory structure."""
+"""Load and preprocess datasets; dispatch is driven by dataset_source.ACTIVE_DATASET."""
 
 from __future__ import annotations
 
+import numpy as np
 import tensorflow as tf
 
 from image_classifier import config
+from image_classifier.dataset_source import ACTIVE_DATASET
+
+CIFAR10_CLASS_NAMES = (
+    "airplane",
+    "automobile",
+    "bird",
+    "cat",
+    "deer",
+    "dog",
+    "frog",
+    "horse",
+    "ship",
+    "truck",
+)
 
 
 def _augment(image, label):
@@ -13,11 +28,52 @@ def _augment(image, label):
     return image, label
 
 
-def make_datasets():
-    """
-    Expects: config.DATA_DIR / class_a/*.jpg, config.DATA_DIR / class_b/*.jpg, ...
-    Returns: (train_ds, val_ds), class_names
-    """
+def _preprocess_resize(image, label):
+    image = tf.cast(image, tf.float32) / 255.0
+    image = tf.image.resize(image, [config.IMG_HEIGHT, config.IMG_WIDTH])
+    label = tf.cast(tf.reshape(label, []), tf.int32)
+    return image, label
+
+
+def _make_cifar10_datasets():
+    (x_train, y_train), _ = tf.keras.datasets.cifar10.load_data()
+    y_train = y_train.astype(np.int32).flatten()
+
+    n = len(x_train)
+    indices = np.arange(n)
+    rng = np.random.default_rng(config.SEED)
+    rng.shuffle(indices)
+
+    val_n = max(1, int(n * config.VALIDATION_SPLIT))
+    val_idx = indices[:val_n]
+    train_idx = indices[val_n:]
+
+    x_tr, y_tr = x_train[train_idx], y_train[train_idx]
+    x_va, y_va = x_train[val_idx], y_train[val_idx]
+
+    train_ds = (
+        tf.data.Dataset.from_tensor_slices((x_tr, y_tr))
+        .map(_preprocess_resize, num_parallel_calls=tf.data.AUTOTUNE)
+        .map(_augment, num_parallel_calls=tf.data.AUTOTUNE)
+        .shuffle(1000, seed=config.SEED, reshuffle_each_iteration=True)
+        .batch(config.BATCH_SIZE)
+        .cache()
+        .prefetch(tf.data.AUTOTUNE)
+    )
+    val_ds = (
+        tf.data.Dataset.from_tensor_slices((x_va, y_va))
+        .map(_preprocess_resize, num_parallel_calls=tf.data.AUTOTUNE)
+        .batch(config.BATCH_SIZE)
+        .cache()
+        .prefetch(tf.data.AUTOTUNE)
+    )
+
+    num_classes = len(CIFAR10_CLASS_NAMES)
+    class_names = list(CIFAR10_CLASS_NAMES)
+    return train_ds, val_ds, num_classes, class_names
+
+
+def _make_image_directory_datasets():
     train_ds = tf.keras.utils.image_dataset_from_directory(
         config.DATA_DIR,
         validation_split=config.VALIDATION_SPLIT,
@@ -47,6 +103,21 @@ def make_datasets():
     val_ds = val_ds.cache().prefetch(tf.data.AUTOTUNE)
 
     return train_ds, val_ds, num_classes, class_names
+
+
+def make_datasets():
+    """
+    Returns (train_ds, val_ds, num_classes, class_names) for the active dataset.
+    """
+    key = ACTIVE_DATASET.strip().lower()
+    if key == "cifar10":
+        return _make_cifar10_datasets()
+    if key == "image_directory":
+        return _make_image_directory_datasets()
+    raise ValueError(
+        f"Unknown ACTIVE_DATASET {ACTIVE_DATASET!r}; use 'cifar10' or 'image_directory' "
+        f"(see image_classifier/dataset_source.py)."
+    )
 
 
 def dataset_for_inference(image_paths):
