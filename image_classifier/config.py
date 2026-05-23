@@ -17,7 +17,7 @@ IMG_WIDTH = 96
 BATCH_SIZE = 64
 
 # Training
-EPOCHS = 25
+EPOCHS = 12
 LEARNING_RATE = 3e-4
 
 # Performance toggles (especially helpful on GPU)
@@ -30,3 +30,4 @@ CHECKPOINT_DIR = PROJECT_ROOT / "checkpoints"
 # Keras 3: model.save() must use a .keras or .h5 path (not a bare directory).
 SAVED_MODEL_DIR = PROJECT_ROOT / "saved_model"
 MODEL_EXPORT_PATH = SAVED_MODEL_DIR / "model.keras"
+NORMALIZED_CM_EXCEL_PATH = PROJECT_ROOT / "normalized_confusion_matrix.xlsx"
