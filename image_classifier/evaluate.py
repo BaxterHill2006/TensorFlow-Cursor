@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+import os
 
 import numpy as np
 import tensorflow as tf
@@ -196,7 +197,7 @@ def write_normalized_confusion_matrix_excel(
         start_value=0,
         start_color="D62828",
         mid_type="num",
-        mid_value=0.25,
+        mid_value=0.1,
         mid_color="FFD166",
         end_type="num",
         end_value=1,
@@ -206,6 +207,11 @@ def write_normalized_confusion_matrix_excel(
 
     for col in range(1, n + 2):
         ws.column_dimensions[get_column_letter(col)].width = 14
+
+    try:
+        os.remove(path)
+    except:
+        print(f"Error removing file: {path}")
 
     wb.save(path)
     return path
