@@ -11,20 +11,22 @@ import numpy as np
 import tensorflow as tf
 
 from image_classifier import config
-from image_classifier.dataset import CIFAR10_CLASS_NAMES
+from image_classifier.dataset import CIFAR10_CLASS_NAMES, load_cifar10_test as load_cifar10_test_arrays
 
 
 def load_cifar10_test(
     image_height: int = config.IMG_HEIGHT,
     image_width: int = config.IMG_WIDTH,
+    test_batch_path: str | Path | None = None,
 ) -> tuple[tf.Tensor, tf.Tensor]:
     """Load CIFAR-10 test images and labels, resized and normalized."""
-    (_, _), (x_test, y_test) = tf.keras.datasets.cifar10.load_data()
+    path = Path(test_batch_path) if test_batch_path is not None else None
+    x_test, y_test = load_cifar10_test_arrays(path)
     x = tf.image.resize(
         tf.cast(x_test, tf.float32) / 255.0,
         [image_height, image_width],
     )
-    y = tf.reshape(tf.cast(y_test, tf.int32), [-1])
+    y = tf.cast(y_test, tf.int32)
     return x, y
 
 
@@ -345,6 +347,7 @@ def evaluate(
     batch_size: int = config.BATCH_SIZE,
     verbose: int = 1,
     excel_path: str | Path | None = config.NORMALIZED_CM_EXCEL_PATH,
+    test_batch_path: str | Path | None = None,
 ) -> dict[str, float | str]:
     """Load model, evaluate on CIFAR-10 test data, print report, return summary metrics."""
     path = model_path or str(config.CHECKPOINT_DIR / "best_model.keras")
@@ -354,7 +357,7 @@ def evaluate(
         metrics=["accuracy"],
     )
 
-    x, y = load_cifar10_test(image_height, image_width)
+    x, y = load_cifar10_test(image_height, image_width, test_batch_path=test_batch_path)
     y_np = y.numpy()
     metrics = model.evaluate(x, y, verbose=verbose, batch_size=batch_size)
     loss = float(metrics[0])
@@ -413,6 +416,11 @@ def main() -> None:
         help="Path for normalized confusion matrix Excel heat map "
         "(use '' to skip)",
     )
+    parser.add_argument(
+        "--test-batch",
+        default=None,
+        help="Path to a CIFAR-10 test batch pickle (default: config.CIFAR10_TEST_BATCH_PATH)",
+    )
     args = parser.parse_args()
     excel_path = args.excel_out if args.excel_out else None
     evaluate(
@@ -422,6 +430,7 @@ def main() -> None:
         batch_size=args.batch_size,
         verbose=0 if args.quiet else 1,
         excel_path=excel_path,
+        test_batch_path=args.test_batch,
     )
 
 

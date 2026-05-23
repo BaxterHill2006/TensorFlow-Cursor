@@ -1,10 +1,138 @@
-#### Run in terminal #########
+# CIFAR-10 Image Classifier
+
+TensorFlow/Keras project for training and evaluating an image classifier on CIFAR-10. Training reads images and labels from the local `cifar-10-batches-py` folder
+
+## Requirements
+
+- Python 3.10 or newer (3.11+ recommended)
+
+## Dataset
+
+Place the official CIFAR-10 Python batches in the project root:
+
+```
+TensorFlow-Cursor/
+  cifar-10-batches-py/
+    data_batch_1
+    data_batch_2
+    ...
+    test_batch
+    batches.meta
+```
+
+Download from [https://www.cs.toronto.edu/~kriz/cifar.html](https://www.cs.toronto.edu/~kriz/cifar.html) and extract so the folder name is `cifar-10-batches-py`.
+
+Training and test data can use different paths in `image_classifier/config.py`:
+
+- `CIFAR10_BATCHES_DIR` — folder with `data_batch_1` … `data_batch_5` (training)
+- `CIFAR10_TEST_BATCH_PATH` — path to the test pickle file (default: `CIFAR10_BATCHES_DIR / "test_batch"`)
+
+## Install dependencies
+
+From the project root (`TensorFlow-Cursor`):
+
+### Windows (PowerShell)
+
+```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
+pip install --upgrade pip
 pip install -r requirements.txt
+```
 
+### macOS / Linux
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+### Libraries installed
+
+| Package      | Purpose                                      |
+|-------------|-----------------------------------------------|
+| tensorflow  | Model training, evaluation, inference         |
+| numpy       | Array handling and metrics                    |
+| Pillow      | Image I/O (used by TensorFlow image utilities) |
+| openpyxl    | Normalized confusion matrix Excel export      |
+
+## Run the code
+
+Activate the virtual environment, then run commands from the project root.
+
+### 1. Train (Not required as file already contains a trained model)
+
+Default: transfer learning (MobileNetV2 + classification head).
+
+```powershell
 python -m image_classifier.train
+```
 
+Outputs:
+
+- `checkpoints/best_model.keras` — best validation checkpoint
+- `checkpoints/class_names.json` — class names in label order
+- `saved_model/model.keras` — final model after training
+- `saved_model/class_names.json`
+
+### 2. Evaluate on the test set
+
+Uses the test batch at `CIFAR10_TEST_BATCH_PATH` (by default `cifar-10-batches-py/test_batch`) and prints accuracy, Cohen's kappa, weighted F1, and a classification report. Writes a normalized confusion matrix to Excel by default.
+
+```powershell
+# Test best model
+python -m image_classifier.evaluate --model checkpoints/best_model.keras
+
+Options:
+
+```powershell
+# test most recent model
 python -m image_classifier.evaluate
+```
 
-# or: python -c "from image_classifier.evaluate import evaluate; print(evaluate())"
+# Skip Excel export
+python -m image_classifier.evaluate --excel-out ""
+
+# Less console output
+python -m image_classifier.evaluate --quiet
+
+# Different test batch file (overrides config.CIFAR10_TEST_BATCH_PATH)
+python -m image_classifier.evaluate --test-batch path/to/test_batch
+```
+
+### 3. Predict on image files
+
+```powershell
+python -m image_classifier.predict path/to/image1.jpg path/to/image2.png
+```
+
+
+## Configuration
+
+Switch dataset mode in `image_classifier/dataset_source.py`:
+
+- `cifar10` — local `cifar-10-batches-py` (default)
+- `image_directory` — class folders under `data/train/` (see `DATA_DIR` in config)
+
+## Project layout
+
+```
+image_classifier/
+  config.py          # Hyperparameters and paths
+  dataset.py         # CIFAR-10 batch loading and tf.data pipelines
+  dataset_source.py  # Active dataset selector
+  model.py           # CNN and transfer-learning architectures
+  train.py           # Training entry point
+  evaluate.py        # Test-set evaluation and metrics
+  predict.py         # Inference on arbitrary images
+checkpoints/         # Created when training
+saved_model/         # Created when training
+```
+
+## Troubleshooting
+
+- **ModuleNotFoundError: image_classifier** — Run commands from the project root, not from inside `image_classifier/`.
+- **Cannot activate venv on Windows** — If scripts are blocked: `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`, then activate again.
+- **Missing CIFAR batches** — Ensure `cifar-10-batches-py` exists next to `image_classifier/` and contains `data_batch_1` … `data_batch_5` and `test_batch`.

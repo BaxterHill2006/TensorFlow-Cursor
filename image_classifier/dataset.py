@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import pickle
+from pathlib import Path
+
 import numpy as np
 import tensorflow as tf
 
@@ -22,6 +25,32 @@ CIFAR10_CLASS_NAMES = (
 )
 
 
+def _unpickle_batch(path: Path) -> tuple[np.ndarray, np.ndarray]:
+    with path.open("rb") as f:
+        batch = pickle.load(f, encoding="bytes")
+    data = batch[b"data"]
+    labels = np.array(batch[b"labels"], dtype=np.int32)
+    images = data.reshape(-1, 3, 32, 32).transpose(0, 2, 3, 1)
+    return images, labels
+
+
+def load_cifar10_train(batches_dir: Path | None = None) -> tuple[np.ndarray, np.ndarray]:
+    """Load training images and labels from cifar-10-batches-py (data_batch_1..5)."""
+    root = batches_dir or config.CIFAR10_BATCHES_DIR
+    xs, ys = [], []
+    for i in range(1, 6):
+        x, y = _unpickle_batch(root / f"data_batch_{i}")
+        xs.append(x)
+        ys.append(y)
+    return np.concatenate(xs), np.concatenate(ys)
+
+
+def load_cifar10_test(test_batch_path: Path | None = None) -> tuple[np.ndarray, np.ndarray]:
+    """Load test images and labels from a CIFAR-10 batch pickle (default: config.CIFAR10_TEST_BATCH_PATH)."""
+    path = test_batch_path or config.CIFAR10_TEST_BATCH_PATH
+    return _unpickle_batch(path)
+
+
 def _augment(image, label):
     image = tf.image.random_flip_left_right(image)
     image = tf.image.random_brightness(image, max_delta=0.1)
@@ -36,8 +65,7 @@ def _preprocess_resize(image, label):
 
 
 def _make_cifar10_datasets():
-    (x_train, y_train), _ = tf.keras.datasets.cifar10.load_data()
-    y_train = y_train.astype(np.int32).flatten()
+    x_train, y_train = load_cifar10_train()
 
     n = len(x_train)
     indices = np.arange(n)

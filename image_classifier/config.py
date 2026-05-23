@@ -6,6 +6,10 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 # Loader is selected in dataset_source.ACTIVE_DATASET ("cifar10" | "image_directory").
+# CIFAR-10 Python version: training uses data_batch_1..5 in this folder.
+CIFAR10_BATCHES_DIR = PROJECT_ROOT / "cifar-10-batches-py"
+# Test set pickle (default: test_batch in the training folder; set separately if needed).
+CIFAR10_TEST_BATCH_PATH = CIFAR10_BATCHES_DIR / "test_batch"
 # Used only for image_directory: folder per class, e.g. data/train/cat/
 DATA_DIR = PROJECT_ROOT / "data" / "train"
 VALIDATION_SPLIT = 0.1
